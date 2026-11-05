@@ -7,7 +7,8 @@ Next.js 16 · Drizzle ORM · Neon Postgres · Neon Object Storage (bucket `canar
 - **New member** — the "Application for Admission as a Life Member" form plus fee payment
   (Cash / Cheque / NEFT / RTGS / G Pay-UPI). "Collected by" is filled in automatically from the login.
   Typing the pincode fills location, district and state from the India Post directory (members abroad can tick
-  "Lives outside India" and type the country instead). Required: name, son of, year of passing, date of birth,
+  "Lives outside India" and type the country instead). The school is chosen from Canara High School Main, CBSE
+  or Urwa, or typed in under "Others". Required: name, son of, school, year of passing, date of birth,
   address, pincode, location, state, mobile, photo, place and the payment details; e-mail, second mobile and
   address proof are optional.
 - **Approval** — entries by admin / staff wait in **Approvals** until the super admin approves them; approving
@@ -18,7 +19,7 @@ Next.js 16 · Drizzle ORM · Neon Postgres · Neon Object Storage (bucket `canar
 - **Blank forms** — empty application form and receipt for filling in by hand.
 - **Print** — the application form (A4) and the "Life Membership Fees Receipt" (member + office copy on one A4).
   Use the browser's *Save as PDF* to keep a copy.
-- **Search** — by membership ID (jumps straight to the member), name, father's name, mobile, e-mail or transaction no.
+- **Search** — by membership ID (jumps straight to the member), name, father's name, school, mobile, e-mail or transaction no.
 - **User access** (super admin) — create logins with a generated username + password, change roles,
   reset passwords, revoke / restore access. Revoking signs the person out immediately.
 - **Settings** (super admin) — life membership fee (default ₹1000) and the number to continue numbering from
