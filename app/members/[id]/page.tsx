@@ -112,6 +112,7 @@ export default async function MemberPage({
             </div>
             <dl className="grid flex-1 grid-cols-2 gap-x-6 gap-y-4">
               <Item label="Son of">{m.fatherName}</Item>
+              <Item label="School">{m.school}</Item>
               <Item label="Year of passing">{m.yearOfPassing}</Item>
               <Item label="Date of birth">
                 {m.dob ? `${formatDate(m.dob)}${age !== null ? ` (${age} yrs)` : ""}` : ""}

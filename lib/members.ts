@@ -7,6 +7,7 @@ import { fileExists } from "./storage";
 export type MemberInput = {
   name: string;
   fatherName: string;
+  school: string;
   yearOfPassing: string;
   dob: string;
   address: string;
@@ -53,6 +54,7 @@ export function parseMemberInput(body: Record<string, unknown>): { data: MemberI
   const data: MemberInput = {
     name: str(body.name, 200),
     fatherName: str(body.fatherName, 200),
+    school: str(body.school, 200),
     yearOfPassing: str(body.yearOfPassing, 10),
     dob: str(body.dob, 10),
     address: str(body.address, 1000),
@@ -81,6 +83,7 @@ export function parseMemberInput(body: Record<string, unknown>): { data: MemberI
 
   if (!data.name) return { error: "Name of the applicant is required" };
   if (!data.fatherName) return { error: "\"Son of\" (father's name) is required" };
+  if (!data.school) return { error: "Choose the school, or type its name under Others" };
   if (!/^\d{4}$/.test(data.yearOfPassing) || +data.yearOfPassing < 1900 || +data.yearOfPassing > thisYear) {
     return { error: "Enter the year of passing (4 digits)" };
   }

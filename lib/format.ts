@@ -2,6 +2,14 @@
 
 export const PAYMENT_MODES = ["Cash", "Cheque", "NEFT", "RTGS", "G Pay / UPI"] as const;
 
+// Schools an old boy can have studied in; anything else is typed in as "Others".
+export const SCHOOLS = ["Canara High School Main", "Canara High School CBSE", "Canara High School Urwa"] as const;
+
+// "Canara High School Urwa" → "Urwa" for tight lists; other schools as typed.
+export function schoolShort(s: string) {
+  return (SCHOOLS as readonly string[]).includes(s) ? s.replace("Canara High School ", "") : s;
+}
+
 // Membership IDs print as at least three digits: 8 → "008", 226 → "226".
 // Entries awaiting approval have no number yet.
 export function formatMemberNo(n: number | null | undefined): string {

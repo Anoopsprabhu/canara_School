@@ -17,7 +17,7 @@ export async function GET(req: NextRequest) {
   const { rows, total, counted, excluded } = await runReport(f);
 
   const header = [
-    "Membership No", "Receipt Date", "Name", "Son of", "Mobile", "Location", "District", "State", "Pincode", "Amount (Rs)", "Payment Mode", "Ref / UTR / Cheque No",
+    "Membership No", "Receipt Date", "Name", "Son of", "School", "Year of Passing", "Mobile", "Location", "District", "State", "Pincode", "Amount (Rs)", "Payment Mode", "Ref / UTR / Cheque No",
     "Txn Date", "Bank", "Collected By", "Approved By", "Status", "Remarks",
   ];
   const lines = rows.map(({ m, collectedBy, approvedBy }) => [
@@ -25,6 +25,8 @@ export async function GET(req: NextRequest) {
     formatDate(m.receiptDate),
     m.name,
     m.fatherName,
+    m.school,
+    m.yearOfPassing,
     m.mobile1,
     m.location,
     m.district,
@@ -40,7 +42,7 @@ export async function GET(req: NextRequest) {
     STATUS_LABELS[m.status] ?? m.status,
     m.remarks,
   ]);
-  lines.push(["", "", "TOTAL", "", "", "", "", "", "", total, "", "", "", "", "", "", `${counted} entries${excluded ? ` (${excluded} rejected/cancelled not counted)` : ""}`, ""]);
+  lines.push(["", "", "TOTAL", "", "", "", "", "", "", "", "", total, "", "", "", "", "", "", `${counted} entries${excluded ? ` (${excluded} rejected/cancelled not counted)` : ""}`, ""]);
 
   const csv = "﻿" + [header, ...lines].map((r) => r.map(csvCell).join(",")).join("\r\n");
   return new Response(csv, {

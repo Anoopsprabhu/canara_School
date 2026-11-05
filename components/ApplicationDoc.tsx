@@ -1,6 +1,6 @@
 /* eslint-disable @next/next/no-img-element */
 import type { Member } from "@/lib/queries";
-import { ageFrom, formatDate, formatMemberNo, formatPlace, formatRupees, type Signature } from "@/lib/format";
+import { SCHOOLS, ageFrom, formatDate, formatMemberNo, formatPlace, formatRupees, type Signature } from "@/lib/format";
 import SignatureBlock from "./SignatureBlock";
 import DocHeader from "./DocHeader";
 import FitToPage from "./FitToPage";
@@ -59,7 +59,30 @@ export default function ApplicationDoc({
         <ol className="mt-3 space-y-3 text-[15.5px]">
           <Line n={1} label="Name of the Applicant" value={m?.name.toUpperCase()} />
           <Line n={2} label="Son of" value={m?.fatherName.toUpperCase()} />
-          <Line n={3} label="Year of Passing" value={m?.yearOfPassing} />
+          {m ? (
+            <Line n={3} label="School & Year of Passing" value={[m.school, m.yearOfPassing].filter(Boolean).join("  /  ")} />
+          ) : (
+            <li className="flex gap-3">
+              <span className="doc-ink w-6 shrink-0">3.</span>
+              <span className="doc-ink w-[62mm] shrink-0">School & Year of Passing</span>
+              <span className="doc-ink">:</span>
+              <span className="flex-1 space-y-2">
+                <span className="doc-ink flex items-end gap-x-5 text-[14px]">
+                  {[...SCHOOLS.map((s) => s.replace("Canara High School ", "")), "Others"].map((s) => (
+                    <span key={s} className="inline-flex shrink-0 items-center gap-1.5">
+                      <span className="inline-block h-3.5 w-3.5 border border-slate-600" />
+                      {s}
+                    </span>
+                  ))}
+                  <span className="fill -ml-3 flex-1" />
+                </span>
+                <span className="flex gap-2">
+                  <span className="doc-ink">Year :</span>
+                  <span className="fill w-[35mm] flex-none" />
+                </span>
+              </span>
+            </li>
+          )}
           <Line n={4} label="D.O.B. & Age" value={m?.dob ? `${formatDate(m.dob)}${age !== null ? `  /  ${age} years` : ""}` : ""} />
           <li className="flex gap-3">
             <span className="doc-ink w-6 shrink-0">5.</span>

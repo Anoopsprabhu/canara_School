@@ -4,7 +4,7 @@ import { alias } from "drizzle-orm/pg-core";
 import { requireUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { members, users } from "@/lib/schema";
-import { formatDate, formatDateTime, formatRupees } from "@/lib/format";
+import { formatDate, formatDateTime, formatRupees, schoolShort } from "@/lib/format";
 import MemberStatusActions from "@/components/MemberStatusActions";
 
 const collector = alias(users, "collector");
@@ -45,7 +45,7 @@ export default async function ApprovalsPage() {
                 <span className="min-w-0">
                   <span className="block truncate font-medium text-slate-900 hover:text-brand-700">{m.name}</span>
                   <span className="block truncate text-xs text-slate-500">
-                    S/o {m.fatherName} · {m.yearOfPassing} batch · {m.mobile1}
+                    S/o {m.fatherName} · {[m.school && schoolShort(m.school), m.yearOfPassing && `${m.yearOfPassing} batch`].filter(Boolean).join(" ")} · {m.mobile1}
                   </span>
                   <span className="mt-1 block text-xs text-slate-500">
                     Entered by {collectedBy || "—"} · {formatDateTime(m.createdAt, true)}

@@ -1,6 +1,6 @@
 import "server-only";
 import { cache } from "react";
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { NextResponse } from "next/server";
 import { SignJWT, jwtVerify } from "jose";
@@ -58,11 +58,18 @@ export async function verifySessionToken(token: string): Promise<SessionPayload 
   }
 }
 
+// Browsers drop Secure cookies on plain http (Safari even on localhost, every
+// browser on a LAN address), so only mark it Secure when served over https.
+async function isHttps() {
+  const h = await headers();
+  return (h.get("x-forwarded-proto") ?? "").split(",")[0].trim() === "https";
+}
+
 export async function setSessionCookie(token: string) {
   const store = await cookies();
   store.set(SESSION_COOKIE_NAME, token, {
     httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
+    secure: await isHttps(),
     sameSite: "lax",
     path: "/",
     maxAge: 60 * 60 * 24 * 30,

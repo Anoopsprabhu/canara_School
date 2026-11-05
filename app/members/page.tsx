@@ -5,7 +5,7 @@ import { requireUser } from "@/lib/auth";
 import { can } from "@/lib/roles";
 import { db } from "@/lib/db";
 import { members } from "@/lib/schema";
-import { STATUS_BADGES, STATUS_LABELS, formatDate, formatMemberNo, formatRupees, isValidMembershipNo } from "@/lib/format";
+import { STATUS_BADGES, STATUS_LABELS, formatDate, schoolShort, formatMemberNo, formatRupees, isValidMembershipNo } from "@/lib/format";
 
 const PAGE_SIZE = 50;
 
@@ -42,6 +42,7 @@ export default async function MembersPage({
         or(
           ilike(members.name, like),
           ilike(members.fatherName, like),
+          ilike(members.school, like),
           ilike(members.email, like),
           ilike(members.address, like),
           ilike(members.location, like),
@@ -148,7 +149,10 @@ export default async function MembersPage({
                     </td>
                     <td className="text-slate-600">{m.mobile1}</td>
                     <td className="text-slate-600">{m.location}</td>
-                    <td className="text-slate-600">{m.yearOfPassing}</td>
+                    <td className="text-slate-600">
+                      {m.yearOfPassing}
+                      {m.school && <div className="text-xs whitespace-nowrap text-slate-500">{schoolShort(m.school)}</div>}
+                    </td>
                     <td className="whitespace-nowrap">
                       ₹{formatRupees(m.amount)}
                       <div className="text-xs text-slate-500">{m.paymentMode}</div>
@@ -180,7 +184,7 @@ export default async function MembersPage({
                   <span className="min-w-0 flex-1">
                     <span className="block truncate font-medium text-slate-900">{m.name}</span>
                     <span className="block truncate text-xs text-slate-500">
-                      {[m.mobile1, m.location, m.yearOfPassing && `${m.yearOfPassing} batch`].filter(Boolean).join(" · ")}
+                      {[m.mobile1, m.location, m.yearOfPassing && `${m.yearOfPassing} batch`, m.school && schoolShort(m.school)].filter(Boolean).join(" · ")}
                     </span>
                   </span>
                   {m.status !== "active" ? (

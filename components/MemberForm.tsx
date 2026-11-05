@@ -4,11 +4,12 @@ import { useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { PhotoUpload, ProofUpload } from "./PhotoUpload";
-import { PAYMENT_MODES, ageFrom, amountInWords, formatMemberNo, formatRupees, todayISO } from "@/lib/format";
+import { PAYMENT_MODES, SCHOOLS, ageFrom, amountInWords, formatMemberNo, formatRupees, todayISO } from "@/lib/format";
 
 export type MemberFormValues = {
   name: string;
   fatherName: string;
+  school: string;
   yearOfPassing: string;
   dob: string;
   address: string;
@@ -38,6 +39,7 @@ function emptyMember(): MemberFormValues {
   return {
     name: "",
     fatherName: "",
+    school: "",
     yearOfPassing: "",
     dob: "",
     address: "",
@@ -91,6 +93,8 @@ export default function MemberForm({
   // An address without a 6-digit pincode can only be one saved as "outside India".
   const [outsideIndia, setOutsideIndia] = useState(() => !!initial && !!initial.state && !/^\d{6}$/.test(initial.pincode));
   const [lookup, setLookup] = useState<Lookup>({ status: "idle", places: [] });
+  // "Others" is chosen when a saved school isn't one of the listed ones.
+  const [otherSchool, setOtherSchool] = useState(() => !!initial?.school && !(SCHOOLS as readonly string[]).includes(initial.school));
   const lookupFor = useRef("");
 
   const set = <K extends keyof MemberFormValues>(k: K, val: MemberFormValues[K]) => setV((p) => ({ ...p, [k]: val }));
@@ -182,7 +186,42 @@ export default function MemberForm({
             <Field label="2. Son of *" className="sm:col-span-2">
               <input value={v.fatherName} onChange={(e) => set("fatherName", e.target.value)} className="input uppercase" required />
             </Field>
-            <Field label="3. Year of passing (SSLC) *">
+            <Field label="3. School *" className="sm:col-span-2">
+              <div className="grid gap-3 sm:grid-cols-2">
+                <select
+                  value={otherSchool ? "other" : v.school}
+                  onChange={(e) => {
+                    const other = e.target.value === "other";
+                    setOtherSchool(other);
+                    set("school", other ? "" : e.target.value);
+                  }}
+                  className="input"
+                  required
+                >
+                  <option value="" disabled>
+                    Select school
+                  </option>
+                  {SCHOOLS.map((s) => (
+                    <option key={s} value={s}>
+                      {s}
+                    </option>
+                  ))}
+                  <option value="other">Others</option>
+                </select>
+                {otherSchool && (
+                  <input
+                    value={v.school}
+                    onChange={(e) => set("school", e.target.value)}
+                    placeholder="Name of the school"
+                    aria-label="Name of the school"
+                    className="input"
+                    required
+                    autoFocus
+                  />
+                )}
+              </div>
+            </Field>
+            <Field label="Year of passing (SSLC) *">
               <input
                 value={v.yearOfPassing}
                 onChange={(e) => set("yearOfPassing", e.target.value.replace(/\D/g, "").slice(0, 4))}

@@ -29,6 +29,7 @@ export const members = pgTable("members", {
   membershipNo: integer("membership_no").unique(),
   name: text("name").notNull(),
   fatherName: text("father_name").notNull().default(""),
+  school: text("school").notNull().default(""), // one of SCHOOLS, or the name typed under "Others"
   yearOfPassing: text("year_of_passing").notNull().default(""),
   dob: text("dob").notNull().default(""), // YYYY-MM-DD
   address: text("address").notNull().default(""),
