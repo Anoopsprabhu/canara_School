@@ -17,6 +17,40 @@ async function uploadToServer(file: File, kind: "photo" | "proof"): Promise<stri
   return data.key;
 }
 
+// Loads a picked image so we know the browser can draw it (HEIC can't be drawn
+// outside Safari) before showing the cropper or shrinking it.
+function loadImage(src: string): Promise<HTMLImageElement> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => resolve(img);
+    img.onerror = () => reject(new Error("unreadable"));
+    img.src = src;
+  });
+}
+
+const UNREADABLE_IMAGE = "This photo format can't be opened here (e.g. HEIC). Choose a JPG or PNG, or use the camera.";
+
+// Phone photos of an ID are often 5–20 MB; shrink them so they upload quickly
+// and stay well under the server's 10 MB limit. PDFs are sent as they are.
+async function shrinkImage(file: File, maxSide = 2000): Promise<File> {
+  const url = URL.createObjectURL(file);
+  try {
+    const img = await loadImage(url);
+    const scale = Math.min(1, maxSide / Math.max(img.naturalWidth, img.naturalHeight));
+    if (scale === 1 && file.size < 1.5 * 1024 * 1024) return file;
+    const canvas = document.createElement("canvas");
+    canvas.width = Math.round(img.naturalWidth * scale);
+    canvas.height = Math.round(img.naturalHeight * scale);
+    canvas.getContext("2d")!.drawImage(img, 0, 0, canvas.width, canvas.height);
+    const blob = await new Promise<Blob>((resolve, reject) =>
+      canvas.toBlob((b) => (b ? resolve(b) : reject(new Error("unreadable"))), "image/jpeg", 0.85)
+    );
+    return new File([blob], file.name.replace(/\.\w+$/, "") + ".jpg", { type: "image/jpeg" });
+  } finally {
+    URL.revokeObjectURL(url);
+  }
+}
+
 // Passport-size member photo: choose a file or use the camera, crop to 3:4, upload.
 export function PhotoUpload({
   value,
@@ -50,18 +84,27 @@ export function PhotoUpload({
     }
   }
 
-  function pick(file: File) {
+  function closeCamera() {
+    setCameraOpen(false);
+    if (cropSrc) URL.revokeObjectURL(cropSrc);
+    setCropSrc(null);
+  }
+
+  // Any size is fine here: only the cropped, passport-size JPEG is uploaded.
+  async function pick(file: File) {
+    setError("");
     if (!file.type.startsWith("image/")) {
       setError("Please choose an image (JPG, PNG or WEBP)");
       return;
     }
-    if (file.size > 10 * 1024 * 1024) {
-      setError("Image must be under 10 MB");
-      return;
+    const url = URL.createObjectURL(file);
+    try {
+      await loadImage(url);
+      setCropSrc(url);
+    } catch {
+      URL.revokeObjectURL(url);
+      setError(UNREADABLE_IMAGE);
     }
-    const reader = new FileReader();
-    reader.onload = (e) => setCropSrc(e.target?.result as string);
-    reader.readAsDataURL(file);
   }
 
   return (
@@ -116,34 +159,40 @@ export function PhotoUpload({
         <CameraCapture
           initialImage={cropSrc ?? undefined}
           onCaptured={(file) => {
-            setCameraOpen(false);
-            setCropSrc(null);
+            closeCamera();
             upload(file);
           }}
-          onClose={() => {
-            setCameraOpen(false);
-            setCropSrc(null);
-          }}
+          onClose={closeCamera}
         />
       )}
     </div>
   );
 }
 
-// Address proof: image or PDF, uploaded as-is.
+// Address proof: an image (shrunk if large) or a PDF.
 export function ProofUpload({ value, onChange }: { value: string; onChange: (key: string) => void }) {
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
 
-  async function upload(file: File) {
+  async function upload(picked: File) {
     setError("");
-    if (file.size > 10 * 1024 * 1024) {
-      setError("File must be under 10 MB");
+    const isPdf = picked.type === "application/pdf";
+    if (!isPdf && !picked.type.startsWith("image/")) {
+      setError("Attach a photo (JPG, PNG) or a PDF");
       return;
     }
     setUploading(true);
     try {
+      let file = picked;
+      if (!isPdf) {
+        try {
+          file = await shrinkImage(picked);
+        } catch {
+          throw new Error(UNREADABLE_IMAGE);
+        }
+      }
+      if (file.size > 10 * 1024 * 1024) throw new Error("The PDF must be under 10 MB");
       onChange(await uploadToServer(file, "proof"));
     } catch (e) {
       setError(e instanceof Error ? e.message : "Upload failed");

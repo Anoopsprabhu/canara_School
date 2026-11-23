@@ -36,6 +36,13 @@ export default function CameraCapture({
     async (id?: string) => {
       stopStream();
       setError("");
+      // Browsers only allow the camera on https or on this computer (localhost).
+      if (!navigator.mediaDevices?.getUserMedia) {
+        setError(
+          "The camera only works over a secure (https) link or on this computer. Use Choose photo instead — on a phone it can take a picture too."
+        );
+        return;
+      }
       try {
         const stream = await navigator.mediaDevices.getUserMedia({
           video: id ? { deviceId: { exact: id } } : { facingMode: "user" },
