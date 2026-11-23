@@ -4,25 +4,29 @@ import { useRef, useState } from "react";
 import type { Signature } from "@/lib/format";
 import CameraCapture from "@/components/CameraCapture";
 
-// Two authorised signatories. Each active one is printed on the application
-// form and the receipt above "Authorised Signature".
+// Two authorised signatories. Each active one is printed on approved members'
+// application forms and receipts above "Authorised Signature". Uploading,
+// switching on/off and removing save straight away; name and designation are
+// saved with the button.
 export default function SignaturesForm({ initial }: { initial: Signature[] }) {
   const [sigs, setSigs] = useState<Signature[]>(initial);
   const [saved, setSaved] = useState(JSON.stringify(initial));
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
   const [busy, setBusy] = useState(false);
 
-  function update(i: number, patch: Partial<Signature>) {
-    setSigs((prev) => prev.map((s, j) => (j === i ? { ...s, ...patch } : s)));
+  function update(i: number, patch: Partial<Signature>, done?: string) {
+    const next = sigs.map((s, j) => (j === i ? { ...s, ...patch } : s));
+    setSigs(next);
+    if (done) save(next, done);
   }
 
-  async function save() {
+  async function save(next = sigs, done = "Signatures saved.") {
     setBusy(true);
     setMsg(null);
     const res = await fetch("/api/admin/settings", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ signatures: sigs }),
+      body: JSON.stringify({ signatures: next }),
     });
     const data = await res.json().catch(() => ({}));
     setBusy(false);
@@ -32,7 +36,7 @@ export default function SignaturesForm({ initial }: { initial: Signature[] }) {
     }
     setSigs(data.signatures);
     setSaved(JSON.stringify(data.signatures));
-    setMsg({ ok: true, text: "Signatures saved." });
+    setMsg({ ok: true, text: done });
   }
 
   const dirty = JSON.stringify(sigs) !== saved;
@@ -47,12 +51,14 @@ export default function SignaturesForm({ initial }: { initial: Signature[] }) {
         {msg && <div className={msg.ok ? "alert-success" : "alert-error"}>{msg.text}</div>}
         <div className="grid gap-4 md:grid-cols-2">
           {sigs.map((s, i) => (
-            <SignatureSlot key={i} index={i} sig={s} onChange={(patch) => update(i, patch)} />
+            <SignatureSlot key={i} index={i} sig={s} busy={busy} onChange={(patch, done) => update(i, patch, done)} />
           ))}
         </div>
-        <button onClick={save} disabled={busy || !dirty} className="btn-primary">
-          {busy ? "Saving…" : "Save signatures"}
-        </button>
+        {dirty && (
+          <button onClick={() => save()} disabled={busy} className="btn-primary">
+            {busy ? "Saving…" : "Save name & designation"}
+          </button>
+        )}
       </div>
     </section>
   );
@@ -61,11 +67,13 @@ export default function SignaturesForm({ initial }: { initial: Signature[] }) {
 function SignatureSlot({
   index,
   sig,
+  busy,
   onChange,
 }: {
   index: number;
   sig: Signature;
-  onChange: (patch: Partial<Signature>) => void;
+  busy: boolean;
+  onChange: (patch: Partial<Signature>, done?: string) => void;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [cropSrc, setCropSrc] = useState<string | null>(null);
@@ -85,7 +93,15 @@ function SignatureSlot({
       setError(data.error ?? "Upload failed");
       return;
     }
-    onChange({ imageKey: data.key });
+    onChange(
+      { imageKey: data.key, active: true },
+      `Signature ${index + 1} saved. It now prints on approved members' application forms and receipts.`
+    );
+  }
+
+  function closeCrop() {
+    if (cropSrc) URL.revokeObjectURL(cropSrc);
+    setCropSrc(null);
   }
 
   return (
@@ -100,8 +116,15 @@ function SignatureSlot({
             type="button"
             role="switch"
             aria-checked={sig.active}
-            onClick={() => onChange({ active: !sig.active })}
-            className={`relative h-5 w-9 cursor-pointer rounded-full transition ${sig.active ? "bg-brand-700" : "bg-slate-300"}`}
+            disabled={busy || (!sig.active && !sig.imageKey)}
+            title={!sig.imageKey ? "Upload a signature first" : undefined}
+            onClick={() =>
+              onChange(
+                { active: !sig.active },
+                sig.active ? `Signature ${index + 1} switched off.` : `Signature ${index + 1} switched on.`
+              )
+            }
+            className={`relative h-5 w-9 cursor-pointer rounded-full transition disabled:cursor-not-allowed disabled:opacity-50 ${sig.active ? "bg-brand-700" : "bg-slate-300"}`}
           >
             <span
               className={`absolute top-0.5 h-4 w-4 rounded-full bg-white shadow transition-all ${sig.active ? "left-4.5" : "left-0.5"}`}
@@ -119,13 +142,14 @@ function SignatureSlot({
         )}
       </div>
       <div className="mt-2 flex items-center gap-3">
-        <button type="button" onClick={() => inputRef.current?.click()} disabled={uploading} className="btn-secondary btn-sm">
+        <button type="button" onClick={() => inputRef.current?.click()} disabled={uploading || busy} className="btn-secondary btn-sm">
           {uploading ? "Uploading…" : sig.imageKey ? "Replace image" : "Upload signature"}
         </button>
         {sig.imageKey && (
           <button
             type="button"
-            onClick={() => onChange({ imageKey: "", active: false })}
+            disabled={busy}
+            onClick={() => onChange({ imageKey: "", active: false }, `Signature ${index + 1} removed.`)}
             className="cursor-pointer text-xs font-medium text-red-600 hover:underline"
           >
             Remove
@@ -159,9 +183,12 @@ function SignatureSlot({
           const f = e.target.files?.[0];
           e.target.value = "";
           if (!f) return;
-          const reader = new FileReader();
-          reader.onload = (ev) => setCropSrc(ev.target?.result as string);
-          reader.readAsDataURL(f);
+          setError("");
+          if (!f.type.startsWith("image/")) {
+            setError("Choose a photo or scan of the signature (JPG or PNG)");
+            return;
+          }
+          setCropSrc(URL.createObjectURL(f));
         }}
       />
       {cropSrc && (
@@ -169,10 +196,10 @@ function SignatureSlot({
           aspect={3}
           initialImage={cropSrc}
           onCaptured={(file) => {
-            setCropSrc(null);
+            closeCrop();
             upload(file);
           }}
-          onClose={() => setCropSrc(null)}
+          onClose={closeCrop}
         />
       )}
     </div>

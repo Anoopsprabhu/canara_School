@@ -14,10 +14,16 @@ export async function POST(req: NextRequest) {
 
   const body = await req.json();
   const parsed = parseMemberInput(body);
-  if ("error" in parsed) return NextResponse.json({ error: parsed.error }, { status: 400 });
+  if ("error" in parsed) {
+    console.warn(`[members] save refused: ${parsed.error}`);
+    return NextResponse.json({ error: parsed.error }, { status: 400 });
+  }
   const data = parsed.data;
   const uploadError = await checkUploads(data);
-  if (uploadError) return NextResponse.json({ error: uploadError }, { status: 400 });
+  if (uploadError) {
+    console.warn(`[members] save refused: ${uploadError}`);
+    return NextResponse.json({ error: uploadError }, { status: 400 });
+  }
 
   // Same mobile already registered or waiting? Ask before creating a second one.
   if (!body.confirmDuplicate) {

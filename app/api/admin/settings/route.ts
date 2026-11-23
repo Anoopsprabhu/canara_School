@@ -27,7 +27,6 @@ function parseSignatures(v: unknown): Signature[] | string {
       return "Invalid signature image";
     }
     if (sig.active && !sig.imageKey) return `Upload signature ${i + 1} before making it active`;
-    if (sig.active && !sig.name) return `Enter the name for signature ${i + 1}`;
     out.push(sig);
   }
   return out;

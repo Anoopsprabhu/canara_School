@@ -58,9 +58,15 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   const { user, error } = await apiUser("member:edit");
   if (error) return error;
   const parsed = parseMemberInput(body);
-  if ("error" in parsed) return NextResponse.json({ error: parsed.error }, { status: 400 });
+  if ("error" in parsed) {
+    console.warn(`[members] save refused: ${parsed.error}`);
+    return NextResponse.json({ error: parsed.error }, { status: 400 });
+  }
   const uploadError = await checkUploads(parsed.data);
-  if (uploadError) return NextResponse.json({ error: uploadError }, { status: 400 });
+  if (uploadError) {
+    console.warn(`[members] save refused: ${uploadError}`);
+    return NextResponse.json({ error: uploadError }, { status: 400 });
+  }
 
   const extra: { membershipNo?: number; amount?: number } = {};
   if (current.status !== "pending" && body.membershipNo !== undefined && body.membershipNo !== "") {

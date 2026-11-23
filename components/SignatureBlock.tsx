@@ -26,7 +26,7 @@ export default function SignatureBlock({
         <div key={s.imageKey} className="w-[50mm] text-center">
           <img src={`/api/files/${s.imageKey}`} alt="" className="signature-img mx-auto h-[11mm] w-full" />
           <div className="doc-ink border-t border-dotted border-slate-600 pt-0.5 text-[12.5px] leading-tight">
-            <div className="font-bold not-italic">{s.name}</div>
+            {s.name && <div className="font-bold not-italic">{s.name}</div>}
             <div className={italic ? "italic" : ""}>{s.title || label}</div>
           </div>
         </div>
